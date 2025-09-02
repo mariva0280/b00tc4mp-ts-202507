@@ -5,17 +5,17 @@ State
 - game over
 - level
 - difficulty
-- player position
-- enemy position
+- ship position
+-invader    position
 - bullets position
 */
 
 const constants = {
-    player: {
-        dimensions: { width: 50, height: 30 }
+    ship: {
+        dimensions: { width: 50, height: 50 }
     },
-    enemy: {
-        dimensions: { width: 40, height: 40 }
+   invader : {
+        dimensions: { width: 50, height: 50 }
     },
     bullets: {
         dimensions: { width: 5, height: 10 }
@@ -30,30 +30,52 @@ const state = {
     lives: 3,       
     level: 1,
     difficulty: 'easy',
-    player: { 
-        position: { x: 0, y: 0 }
+    ship: { 
+        position: { x: 400, y: 100 }
     },
-    enemies: [{
-        position: { x: 10, y: 10 }
+   invaders : [{
+        position: { x: 100, y: 500 }
     }, {
-        position: { x: 20, y: 20 }
+        position: { x: 200, y: 500 }
     }, {
-        position: { x: 40, y: 40 }  
+        position: { x: 300, y: 500 }  
+    }, {
+        position: { x: 400, y: 500 }
+    }, {
+        position: { x: 500, y: 500 }
+    }, {
+        position: { x: 600, y: 500 }
+    }, {
+        position: { x: 700, y: 500 }    
+    }, {
+        position: { x: 100, y: 400 }
+    }, {
+        position: { x: 200, y: 400 }
+    }, {
+        position: { x: 300, y: 400 }  
+    }, {
+        position: { x: 400, y: 400 }
+    }, {
+        position: { x: 500, y: 400 }
+    }, {
+        position: { x: 600, y: 400 }
+    }, {
+        position: { x: 700, y: 400 }
     }],
     bulletsPosition: [{
         position: { x: 15, y: 15 },
-        type: 'player'
+        type: 'ship'
     }, {
         position: { x: 25, y: 25 },
-        type: 'enemy'
+        type: 'invader'
     }],
     gameOver: false,
 }
 
 /*
 Logic
-- move player
-- move enemies
+- move ship
+- moveinvader  
 - shoot bullet
 - check collision
 - update score
@@ -63,30 +85,120 @@ Logic
 */
 
 function checkCollision() {
-    const playerHalfWidth = constants.player.dimensions.width / 2;
-    const playerHalfHeight = constants.player.dimensions.height / 2;    
-    const enemyHalfWidth = constants.enemy.dimensions.width / 2;
-    const enemyHalfHeight = constants.enemy.dimensions.height / 2;
+    const shipHalfWidth = constants.ship.dimensions.width / 2;
+    const shipHalfHeight = constants.ship.dimensions.height / 2;    
+    const invaderHalfWidth = constants.invader.dimensions.width / 2;
+    const invaderHalfHeight = constants.invader.dimensions.height / 2;
 
-    const playerVertices = {
-        topLeft: { x: state.player.position.x - playerHalfWidth, y: state.player.position.y + playerHalfHeight },
-        topRight: { x: state.player.position.x + playerHalfWidth, y: state.player.position.y + playerHalfHeight },
-        bottomRight: { x: state.player.position.x + playerHalfWidth, y: state.player.position.y - playerHalfHeight },
-        bottomLeft: { x: state.player.position.x - playerHalfWidth, y: state.player.position.y - playerHalfHeight }
+    const shipVertices = {
+        topLeft: { x: state.ship.position.x - shipHalfWidth, y: state.ship.position.y + shipHalfHeight },
+        topRight: { x: state.ship.position.x + shipHalfWidth, y: state.ship.position.y + shipHalfHeight },
+        bottomRight: { x: state.ship.position.x + shipHalfWidth, y: state.ship.position.y - shipHalfHeight },
+        bottomLeft: { x: state.ship.position.x - shipHalfWidth, y: state.ship.position.y - shipHalfHeight }
     }
 
-    return state.enemies.some((enemy) => {
-        const enemyVertices = {
-            topLeft: { x: enemy.position.x - enemyHalfWidth, y: enemy.position.y + enemyHalfHeight },
-            topRight: { x: enemy.position.x + enemyHalfWidth, y: enemy.position.y + enemyHalfHeight },
-            bottomRight: { x: enemy.position.x + enemyHalfWidth, y: enemy.position.y - enemyHalfHeight },
-            bottomLeft: { x: enemy.position.x - enemyHalfWidth, y: enemy.position.y - enemyHalfHeight }
+    return state.invaders.some(invader => {
+        const invaderVertices = {
+            topLeft: { x:invader.position.x - invaderHalfWidth, y: invader.position.y + invaderHalfHeight },
+            topRight: { x: invader.position.x + invaderHalfWidth, y: invader.position.y + invaderHalfHeight },
+            bottomRight: { x: invader.position.x + invaderHalfWidth, y: invader.position.y - invaderHalfHeight },
+            bottomLeft: { x: invader.position.x - invaderHalfWidth, y: invader.position.y - invaderHalfHeight }
         }
 
-        return playerVertices.topLeft.x <= enemyVertices.bottomRight.x &&
-                playerVertices.topRight.x >= enemyVertices.topLeft.x &&
-                playerVertices.topLeft.y >= enemyVertices.bottomRight.y &&
-                playerVertices.bottomRight.y <= enemyVertices.topLeft.y
+        return shipVertices.topLeft.x <=invaderVertices.bottomRight.x &&
+                shipVertices.topRight.x >=invaderVertices.topLeft.x &&
+                shipVertices.topLeft.y >=invaderVertices.bottomRight.y &&
+                shipVertices.bottomRight.y <=invaderVertices.topLeft.y
         
     })
+
 }
+
+/* Interface */
+
+const scene = document.getElementById('scene') as HTMLDivElement
+scene.style.position = 'relative'
+scene.style.width = '800px'
+scene.style.height = '600px'
+scene.style.backgroundColor = 'gray'
+//scene.style.overflow = 'hidden'
+
+const ship = document.createElement('div')
+ship.style.position = 'absolute'
+ship.style.width = `${constants.ship.dimensions.width}px`
+ship.style.height = `${constants.ship.dimensions.height}px`
+ship.style.backgroundImage = 'url(./public/images/ship.png)'
+ship.style.backgroundSize = 'cover'
+
+const invaders  = state.invaders.map(invader => {
+    const invaderElement = document.createElement('div') as HTMLDivElement
+    invaderElement.style.position = 'absolute'
+    invaderElement.style.width = `${constants.invader.dimensions.width}px`
+    invaderElement.style.height = `${constants.invader.dimensions.height}px`
+    invaderElement.style.backgroundImage = 'url(./public/images/invader.png)'
+    invaderElement.style.backgroundSize = 'cover'
+    invaderElement.style.left = `${invader.position.x - constants.invader.dimensions.width /2}px`
+    invaderElement.style.top = `${constants.scene.dimensions.height - (invader.position.y + constants.invader.dimensions.height /2)}px`
+    return invaderElement
+})
+
+scene.appendChild(ship)
+invaders.forEach(invader => scene.appendChild(invader))
+
+document.addEventListener('keydown', event => {
+    const step = 10
+
+    if (event.key === 'ArrowLeft') {
+        state.ship.position.x = Math.max(state.ship.position.x - step, constants.ship.dimensions.width / 2)
+    } else if (event.key === 'ArrowRight') {
+        state.ship.position.x = Math.min(state.ship.position.x + step, constants.scene.dimensions.width - constants.ship.dimensions.width / 2)
+    } else if (event.key === 'ArrowUp') {
+        state.ship.position.y = Math.min(state.ship.position.y + step, constants.scene.dimensions.height - constants.ship.dimensions.height / 2)
+    } else if (event.key === 'ArrowDown') {
+        state.ship.position.y = Math.max(state.ship.position.y - step, constants.ship.dimensions.height / 2)
+    }
+
+    ship.style.left = `${state.ship.position.x - constants.ship.dimensions.width / 2}px`
+    ship.style.top = `${constants.scene.dimensions.height - (state.ship.position.y + constants.ship.dimensions.height / 2)}px`
+
+    gameLoop()
+})    
+
+function gameLoop() {
+    if (checkCollision()) {
+        console.log('Game Over')
+        state.gameOver = true
+        alert('Game Over')
+        // Reset game
+        //state.score = 0
+        //state.lives = 3
+        //state.level = 1
+        //state.ship.position = { x: constants.scene.dimensions.width / 2, y: constants.ship.dimensions.height / 2 }
+        //ship.style.left = `${state.ship.position.x - constants.ship.dimensions.width / 2}px`
+        //ship.style.top = `${constants.scene.dimensions.height - (state.ship.position.y + constants.//ship.dimensions.height / 2)}px`  
+        //state.gameOver = false
+    }
+}
+
+setInterval(() => {
+    if (state.gameOver) return
+
+    state.invaders = state.invaders.map(invader => {
+        invader.position.y -= 5
+
+        if (invader.position.y - constants.invader.dimensions.height / 2 < 0) {
+            invader.position.y = constants.scene.dimensions.height - constants.invader.dimensions.height / 2
+        }
+
+        return invader
+    })
+
+    invaders.forEach((invaderElement, index) => {
+        const invader = state.invaders[index]!
+
+        invaderElement.style.left = `${invader.position.x - constants.invader.dimensions.width / 2}px`
+        invaderElement.style.top = `${constants.scene.dimensions.height - (invader.position.y + constants.invader.dimensions.height / 2)}px`
+    })
+
+    gameLoop()
+}, 200);
