@@ -6,6 +6,8 @@ class Component {
     private width: number = 0
     private height: number = 0
 
+    private moveCallback: (() => void) | null = null
+
     constructor(container: HTMLElement, x: number, y: number, width: number, height: number) {
         if (!container) throw new Error("Container element is required")
 
@@ -25,6 +27,8 @@ class Component {
         this.y = y
         this.getContainer()!.style.left = `${x - this.width / 2}px`
         this.getContainer()!.style.bottom = `${y - this.height / 2}px`
+
+        if (this.moveCallback) this.moveCallback()
     }
     public getX(): number {
         return this.x
@@ -53,6 +57,10 @@ class Component {
         this.getContainer()?.appendChild(object.getContainer()!)
     }
 
+    public remove(object: Component): void {
+        this.getContainer()?.removeChild(object.getContainer()!)
+    }
+
     public collidesWith(object: Component): boolean {
         if (!(object instanceof Component)) throw new Error("Object is not a Component")
         
@@ -60,7 +68,11 @@ class Component {
                this.getX() + this.getWidth() > object.getX() &&
                this.getY() < object.getY() + object.getHeight() &&
                this.getY() + this.getHeight() > object.getY()
-    }        
+    } 
+    
+    public onMove(callback: () => void): void {
+        this.moveCallback = callback
+    }
 
 }
 
@@ -76,7 +88,6 @@ class Scene extends Component {
 }
 
 class Ship extends Component {
-    private moveCallback: (() => void) | null = null
     constructor(x: number, y: number, width: number, height: number) {
         super(document.createElement("div"), x, y, width, height)
 
@@ -84,21 +95,6 @@ class Ship extends Component {
         this.getContainer().style.backgroundImage = "url(./public/images/ship.png)"
         this.getContainer().style.backgroundSize = "cover"
 
-        document.addEventListener("keydown", (event) => {
-            const step = 10
-
-            if (event.key === "ArrowLeft") {
-                this.setPosition(this.getX() - step, this.getY())
-            } else if (event.key === "ArrowRight") {
-                this.setPosition(this.getX() + step, this.getY())
-            }
-
-            if (this.moveCallback) this.moveCallback()
-        })
-    }
-
-    public onMove(callback: () => void): void {
-        this.moveCallback = callback
     }
 }
 
@@ -112,7 +108,6 @@ class Bullet extends Component {
 }
 
 class Alien extends Component {
-    private moveCallback: (() => void) | null = null
     constructor(x: number, y: number, width: number, height: number) {
         super(document.createElement("div"), x, y, width, height)
 
@@ -120,17 +115,8 @@ class Alien extends Component {
         this.getContainer().style.backgroundImage = "url(./public/images/invader.png)"
         this.getContainer().style.backgroundSize = "cover"
 
-        setInterval(() => {
-            const step = 10
-            this.setPosition(this.getX(), this.getY() - step)
-
-            if (this.moveCallback) this.moveCallback()
-        }, 1000)
     }
 
-    public onMove(callback: () => void): void {
-        this.moveCallback = callback
-    }
 }
 
 class Game extends Component {
@@ -165,6 +151,37 @@ class Game extends Component {
             })
         })
 
+        document.addEventListener("keydown", (event) => {
+            const step = 10
+
+            if (event.key === "ArrowLeft") {
+                this.ship.setPosition(this.ship.getX() - step, this.ship.getY())
+            } else if (event.key === "ArrowRight") {
+                this.ship.setPosition(this.ship.getX() + step, this.ship.getY())
+            } else if (event.key === " ") {
+                const bullet = new Bullet(this.ship.getX(), this.ship.getY() + this.ship.getHeight() / 2, 5, 10)
+
+                this.bullets.push(bullet)
+                this.scene.add(bullet)
+
+                bullet.onMove(() => {
+                    this.aliens.forEach(alien => {
+                        if (bullet.collidesWith(alien)) {
+                            let index = this.aliens.indexOf(alien)
+                            this.aliens.splice(index, 1)
+
+                            this.scene.remove(alien)
+
+                            index = this.bullets.indexOf(bullet)
+                            this.bullets.splice(index, 1)
+
+                            this.scene.remove(bullet)
+                        }
+                    })
+                })
+            }    
+        })
+
 
         this.bullets = []
         this.aliens = []
@@ -175,12 +192,12 @@ class Game extends Component {
         const alienWidth = 50
         const alienHeight = 50
         const colSpacing = this.scene.getWidth() / cols - alienWidth
-        const rowSpacing = 50
+        const rowSpacing = alienHeight
 
         for (let row = 0; row < rows; row++) {
             for (let col = 0; col < cols; col++) {
                 const x = col * (alienWidth + colSpacing) + colSpacing
-                const y = this.scene.getHeight() - (row + 1) * rowSpacing
+                const y = this.scene.getHeight() - row * rowSpacing - alienHeight / 2
 
                 const alien = new Alien(x, y, alienWidth, alienHeight)
                 this.aliens.push(alien)
@@ -198,6 +215,21 @@ class Game extends Component {
                 })
             }
         }
+
+        setInterval(() => {
+            const step = 10
+
+            this.aliens.forEach(alien => alien.setPosition(alien.getX(), alien.getY() > alienHeight / 2 ? alien.getY() - step : this.scene.getHeight() - alienHeight / 2))
+            
+        }, 300)
+
+        setInterval(() => {
+            const step = 5
+
+            this.bullets.forEach(bullet => {
+                bullet.setPosition(bullet.getX(), bullet.getY() + step)
+            })
+        }, 50)    
     }
 }
 
