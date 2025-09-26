@@ -14,17 +14,20 @@ class Component {
         this.container = container
 
         this.getContainer()!.style.position = "absolute"
-        this.setPosition(x, y)
+
         this.setSize(width, height)
+        this.setPosition(x, y)
+
     }
 
     public getContainer(): HTMLElement {
-        return this.container!
+        return this.container
     }
 
     public setPosition(x: number, y: number): void {
         this.x = x
         this.y = y
+
         this.getContainer()!.style.left = `${x - this.width / 2}px`
         this.getContainer()!.style.bottom = `${y - this.height / 2}px`
 
@@ -37,12 +40,13 @@ class Component {
     public getY(): number {
         return this.y
     }
-    
+
     public setSize(width: number, height: number): void {
         this.width = width
         this.height = height
-        this.getContainer()!.style.width = `${width}px`
-        this.getContainer()!.style.height = `${height}px`
+
+        this.getContainer().style.width = `${width}px`
+        this.getContainer().style.height = `${height}px`
     }
 
     public getWidth(): number {
@@ -54,22 +58,26 @@ class Component {
     }
 
     public add(object: Component): void {
+        if (!(object instanceof Component)) throw new Error("Object is not a Component")
+
         this.getContainer()?.appendChild(object.getContainer()!)
     }
 
     public remove(object: Component): void {
+        if (!(object instanceof Component)) throw new Error("Object is not a Component")
+
         this.getContainer()?.removeChild(object.getContainer()!)
     }
 
     public collidesWith(object: Component): boolean {
         if (!(object instanceof Component)) throw new Error("Object is not a Component")
-        
+
         return this.getX() < object.getX() + object.getWidth() &&
-               this.getX() + this.getWidth() > object.getX() &&
-               this.getY() < object.getY() + object.getHeight() &&
-               this.getY() + this.getHeight() > object.getY()
-    } 
-    
+            this.getX() + this.getWidth() > object.getX() &&
+            this.getY() < object.getY() + object.getHeight() &&
+            this.getY() + this.getHeight() > object.getY()
+    }
+
     public onMove(callback: () => void): void {
         this.moveCallback = callback
     }
@@ -77,7 +85,6 @@ class Component {
 }
 
 class Scene extends Component {
-
     constructor(x: number, y: number, width: number, height: number) {
         super(document.createElement("div"), x, y, width, height)
 
@@ -91,7 +98,7 @@ class Ship extends Component {
     constructor(x: number, y: number, width: number, height: number) {
         super(document.createElement("div"), x, y, width, height)
 
-        
+
         this.getContainer().style.backgroundImage = "url(./public/images/ship.png)"
         this.getContainer().style.backgroundSize = "cover"
 
@@ -102,7 +109,7 @@ class Bullet extends Component {
     constructor(x: number, y: number, width: number, height: number) {
         super(document.createElement("div"), x, y, width, height)
 
-       
+
         this.getContainer().style.backgroundColor = "red"
     }
 }
@@ -111,7 +118,7 @@ class Alien extends Component {
     constructor(x: number, y: number, width: number, height: number) {
         super(document.createElement("div"), x, y, width, height)
 
-        
+
         this.getContainer().style.backgroundImage = "url(./public/images/invader.png)"
         this.getContainer().style.backgroundSize = "cover"
 
@@ -128,8 +135,17 @@ class Game extends Component {
 
     private gameOver: boolean = false
 
-    constructor(containerId: string, x: number, y: number, width: number, height: number) {
-        super(document.getElementById(containerId)!, x, y, width, height)
+    private aliensIntervalId: number = 0
+    private bulletsIntervalId: number = 0
+
+    private overCallback: (() => void) | null = null
+
+    public onOver(callback: () => void): void {
+        this.overCallback = callback
+    }
+
+    constructor(x: number, y: number, width: number, height: number) {
+        super(document.createElement("div"), x, y, width, height)
 
         this.getContainer().style.position = "relative"
         this.getContainer().style.backgroundColor = "darkgray"
@@ -139,17 +155,6 @@ class Game extends Component {
 
         this.ship = new Ship(400, 50, 50, 50)
         this.scene.add(this.ship)
-
-        this.ship.onMove (() => {
-            if (this.gameOver) return
-            this.aliens.forEach((alien) => {
-                if (this.ship.collidesWith(alien)) {
-                    alert("Game Over")
-
-                    this.gameOver = true
-                }
-            })
-        })
 
         document.addEventListener("keydown", (event) => {
             const step = 10
@@ -165,6 +170,8 @@ class Game extends Component {
                 this.scene.add(bullet)
 
                 bullet.onMove(() => {
+                    if (this.gameOver) return
+
                     this.aliens.forEach(alien => {
                         if (bullet.collidesWith(alien)) {
                             let index = this.aliens.indexOf(alien)
@@ -179,7 +186,7 @@ class Game extends Component {
                         }
                     })
                 })
-            }    
+            }
         })
 
 
@@ -205,6 +212,7 @@ class Game extends Component {
 
                 alien.onMove(() => {
                     if (this.gameOver) return
+
                     this.aliens.forEach((alien) => {
                         if (this.ship.collidesWith(alien)) {
                             alert("Game Over")
@@ -216,22 +224,59 @@ class Game extends Component {
             }
         }
 
-        setInterval(() => {
+        this.aliensIntervalId = setInterval(() => {
+
             const step = 10
 
-            this.aliens.forEach(alien => alien.setPosition(alien.getX(), alien.getY() > alienHeight / 2 ? alien.getY() - step : this.scene.getHeight() - alienHeight / 2))
-            
-        }, 300)
+            this.aliens.forEach(alien => {
 
-        setInterval(() => {
+                alien.setPosition(alien.getX(), alien.getY() - step)
+
+                if (alien.getY() - alienHeight / 2 <= 0) {
+                    this.makrGameOver()
+                }
+            })
+
+        }, 500)
+
+        this.bulletsIntervalId = setInterval(() => {
+
             const step = 5
 
             this.bullets.forEach(bullet => {
                 bullet.setPosition(bullet.getX(), bullet.getY() + step)
             })
-        }, 50)    
+        }, 50)
     }
+
+    private makrGameOver(): void {
+        clearInterval(this.aliensIntervalId)
+        clearInterval(this.bulletsIntervalId)
+
+        this.gameOver = true
+
+        alert("Game Over")
+
+        if (this.overCallback) this.overCallback()
+    }
+
 }
 
 // Initialize the game
-const game = new Game("game", 450, 350, 800, 600)
+const body = new Component(document.body, 450, 350, 900, 700)
+body.getContainer().style.margin = "0"
+body.getContainer().style.overflow = "hidden"
+
+function init() {
+    const game = new Game(450, 350, 900, 700)
+    body.add(game)
+
+    game.onOver(() => {
+
+        body.remove(game)
+
+        init()
+    })
+}
+
+init()
